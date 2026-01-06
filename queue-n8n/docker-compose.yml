@@ -1,0 +1,52 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+      - TZ=Asia/Kolkata
+      # Queue Mode Configuration
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      # Increase timeout to handle longer workflows
+      - EXECUTIONS_TIMEOUT=300
+      - EXECUTIONS_TIMEOUT_MAX=600
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  n8n-worker:
+    image: n8nio/n8n:latest
+    command: worker  # Required: Run in worker mode to process queue
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    environment:
+      - TZ=Asia/Kolkata
+      # Queue Mode Configuration - Worker processes the queue
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      # Increase timeout to handle longer workflows
+      - EXECUTIONS_TIMEOUT=300
+      - EXECUTIONS_TIMEOUT_MAX=600
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  redis_data:
