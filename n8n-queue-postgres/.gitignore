@@ -1,0 +1,7 @@
+# n8n data directory
+n8n_data/
+
+# Environment files (if you create .env)
+.env
+.env.local
+
